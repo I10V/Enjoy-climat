@@ -11,5 +11,6 @@ Here's how climate choice works:
 3) Dive deep into climate statistics for each destination with our easy-to-use comparison tool. View maps of season duration data, sunshine, and snowcover over the world.
 
 #Enjoy_climate is R shiny.io based app is suitable by the link below:
-
 https://i1ov.shinyapps.io/Enjoy_climat/
+
+Data calculation code is deposited here in main branch: /I10V/Enjoy-climate/tree/main/raw%20data%20dowload%20and%20analyses 
