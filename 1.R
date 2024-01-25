@@ -59,7 +59,17 @@ ui <-navbarPage(
              
            )
   )
-  
+  ,
+  tabPanel(title = "Contacts", 
+           
+           mainPanel(
+             h4('This project was developed by Victor Ivanov, Moscow State University') 
+             ,h1()
+             ,h5('Email: viktoro.1998@yandex.ru')
+             ,h5('Github: https://github.com/I10V')
+             ,h5('Research Gate: https://www.researchgate.net/profile/Victor-Ivanov-9')
+                   )
+          )
   
 )
 

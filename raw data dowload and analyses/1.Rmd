@@ -1,0 +1,306 @@
+---
+title: "Untitled"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(utils)
+library(LaF)
+library(tidyr)
+library(ggplot2)
+library(readr)
+library(sf)
+library(qs) 
+
+```
+
+Archive of all stations in ncdc.noaa.gov
+```{r}
+#windous options
+options(download.file.method = "libcurl")
+options(timeout=240)
+
+#Archive of all stations
+download.file("ftp://ftp.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt", destfile = "stations.txt")
+
+#way of reading raw meteo data from cite
+stations_width<-c(12, 9, 10, 7, 3, 31)
+stations_colname<-c("id", "latitude", "longitude", "elevation", "state", "name")
+
+laf <- laf_open_fwf("stations.txt", column_widths = stations_width, 
+                    column_types=rep("character",6),
+                    column_names = stations_colname)
+stations<-laf[,]
+
+#Filtering stations example 
+# sel_stations<-filter(stations, grepl("RS", substr(stations$id,1,2))) #Russia
+list_of_files = list.files(path = 'meteo_data/', pattern = 'RS', full.names = F)
+
+#Way to not dowload second time files that was dowloaded before
+`%not_in%` <- purrr::negate(`%in%`)
+sel_stations = filter(stations, stations$id %not_in% list_of_files) #Russia
+
+sel_stations$url<-paste0("ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/", trimws(sel_stations$id), ".dly")
+
+
+col_names<-c("id", "year", "month", "element")
+for(i in 1:31) col_names<-c(col_names, paste0("value", i), paste0("mflag", i), paste0("qflag", i), paste0("sflag", i))
+```
+
+windows based download process of meteodata (ncdc.noaa.gov) 
+```{r}
+#the process of downloading of metadata was about 6 days
+
+for (i in 1:nrow(sel_stations)){
+  tryCatch({ download.file(sel_stations$url[i], destfile = paste0('meteo_data/', as.character(sel_stations$id[i])))
+
+  },  error = function(e){ NULL })
+  
+}
+
+list_of_files = list.files(path = 'meteo_data/', full.names = T)
+```
+
+Data aggregation
+```{r}
+
+meteo_data_f = function(list_of_files, NAME) {
+  
+  
+meteo_data = lapply(list_of_files, function(x){ 
+  
+  print(parent.frame()$i[])
+  
+t = read_fwf(x, fwf_widths(c(11, 4, 2, 4, rep(c(5, 1, 1, 1), 31))), show_col_types = FALSE, skip = 0) 
+  colnames(t) = col_names
+  
+t = select(t, 1:4, starts_with("value"))
+t = gather(t, key = day, value = value, 5:35)
+t$value = ifelse(t$value == -9999,NA,t$value)
+t$day = as.integer(substr(t$day,6,7))
+t = mutate(t, date=as.Date(paste(year,month,day), "%Y%m%d"))
+ 
+dffg_l = arrange(t, id, element, date) #long data 
+dffg_w = t %>% pivot_wider(names_from = element, values_from = value) #wide data
+
+
+})
+
+qsave(meteo_data, paste0(NAME), preset = "custom", shuffle_control = 15, algorithm = "zstd")
+}
+
+#we part data set for optimization of RAM usage 
+meteo_data_f(list_of_files = list_of_files[1:5000], 'meteo_data_1.qs')
+meteo_data_f(list_of_files = list_of_files[5001:10000], 'meteo_data_2.qs')
+meteo_data_f(list_of_files = list_of_files[10001:15000], 'meteo_data_3.qs')
+meteo_data_f(list_of_files = list_of_files[15001:20000], 'meteo_data_4.qs')
+meteo_data_f(list_of_files = list_of_files[20001:25000], 'meteo_data_5.qs')
+meteo_data_f(list_of_files = list_of_files[25001:30000], 'meteo_data_6.qs')
+meteo_data_f(list_of_files = list_of_files[30001:35000], 'meteo_data_7.qs')
+meteo_data_f(list_of_files = list_of_files[35001:40000], 'meteo_data_8.qs')
+meteo_data_f(list_of_files = list_of_files[40001:45000], 'meteo_data_9.qs')
+meteo_data_f(list_of_files = list_of_files[45001:50000], 'meteo_data_10.qs')
+meteo_data_f(list_of_files = list_of_files[50001:55000], 'meteo_data_11.qs')
+meteo_data_f(list_of_files = list_of_files[55001:60000], 'meteo_data_12.qs')
+
+meteo_data_f(list_of_files = list_of_files[60001:65000], 'meteo_data_13.qs')
+meteo_data_f(list_of_files = list_of_files[65001:70000], 'meteo_data_14.qs')
+meteo_data_f(list_of_files = list_of_files[70001:75000], 'meteo_data_15.qs')
+meteo_data_f(list_of_files = list_of_files[75001:80000], 'meteo_data_16.qs')
+meteo_data_f(list_of_files = list_of_files[80001:85000], 'meteo_data_17.qs')
+meteo_data_f(list_of_files = list_of_files[85001:90000], 'meteo_data_18.qs')
+meteo_data_f(list_of_files = list_of_files[90001:95000], 'meteo_data_19.qs')
+meteo_data_f(list_of_files = list_of_files[100001:105000], 'meteo_data_20.qs')
+meteo_data_f(list_of_files = list_of_files[105001:110000], 'meteo_data_21.qs')
+meteo_data_f(list_of_files = list_of_files[110001:115000], 'meteo_data_22.qs')
+meteo_data_f(list_of_files = list_of_files[115001:length(list_of_files)], 'meteo_data_23.qs')
+
+```
+Parameters description:
+
+PRCP = Precipitation (tenths of mm)
+SNOW = Snowfall (mm)
+SNWD = Snow depth (mm)
+TMAX = Maximum temperature (tenths of degrees C)
+TMIN = Minimum temperature (tenths of degrees C)
+AVG = Average temperature (tenths of degrees C) (Note that TAVG from source 'S' corresponds to an average for the period ending at 2400 UTC rather than local midnight)
+
+
+Seasonal duration calculation function 
+```{r}
+Dur = function(M){
+k = parent.frame()$i[]
+#K = names(clean_meteo_data)[k]
+print(k)
+
+t = M %>% subset(year > 2000 & year < 2023) %>% subset((month != '02' | day != '29')
+                                                          &(month != '02' | day != '30')
+                                                          &(month != '02' | day != '31')
+                                                          &(month != '04' | day != '31')
+                                                          &(month != '06' | day != '31')
+                                                          &(month != '09' | day != '31')
+                                                          &(month != '11' | day != '31')
+                                                         )
+#norm units 
+t$TAVG = as.numeric(t$TAVG)/10
+
+info = t[1,] %>% left_join(stations)
+
+t = t %>% group_split(year)
+
+#Season duration
+t = lapply(t, function(x){
+  
+#print(paste0 (K,' - ', x$year[1]))
+  
+  #mising values interpolation
+  
+  check = x$TAVG %>% na.omit() %>% length()
+  x$check = check
+  x = x %>% mutate(TAVG = ifelse(check >2, imputeTS::na_interpolation(TAVG, option = "linear"), NA))
+
+
+  x= x%>% mutate(season = ifelse(TAVG <= -3, 'winter',
+                                 ifelse(TAVG  <= 10 & TAVG > -3, 'spring',
+                                 ifelse(TAVG > 10, 'summer', 'autumn' ))
+                                 ))
+  season_fr = unique(x$season)
+
+summer_peak = x$date[ match(max(x$TAVG, na.rm = T), x$TAVG) ]
+
+x= x %>% mutate(season = ifelse(season == 'spring' & date > summer_peak, 'autumn', season))
+
+x = x %>% group_by(season) %>% summarise(duration = length(season)) %>% t() %>% data.frame()
+
+colnames(x) = x[1, ]
+x = x[-1, ]
+row.names(x) = NULL
+
+x = x %>% data.frame() %>% mutate_all(as.character)
+
+#in rare cases there ony 1 season in a year
+
+if (ncol(x) == 1){
+
+  colnames(x) = season_fr
+}
+
+
+ return(x)
+
+ }) 
+
+t= t%>% bind_rows()
+
+#option if there are no some season
+
+cols = c(autumn = NA_real_, spring = NA_real_, summer = NA_real_, winter = NA_real_ )
+t = add_column(t, !!!cols[setdiff(names(cols), names(t))])
+t = replace(t,is.na(t),0)
+t$autumn = as.numeric(t$autumn)
+t$spring = as.numeric(t$spring)
+t$summer = as.numeric(t$summer)
+t$winter = as.numeric(t$winter)
+#
+
+t = subset(t, select = c(autumn, spring, summer, winter))
+
+t= t %>% summarise(across(1:4, ~median(., na.rm = T)))
+
+#Main station data
+t$name = info$name
+t$lon = info$longitude
+t$lat = info$latitude
+
+return(t)
+} 
+```
+ 
+Seasonal duration function working process
+```{r}
+find_col = function(x){
+  t = any(names(x) == 'TAVG')
+  return(t)
+}
+
+find_col2 = function(x){
+  x = x %>% subset(year > 2000 & year < 2023)
+  x = x %>% dplyr::select(TAVG, month) %>% na.omit()
+  t = length(unique(x$month)) > 8
+  return(t)
+}
+
+
+#meteo_data = 'meteo_data_1.qs'
+Meteo_data_f2 = function(meteo_data){
+
+  print(meteo_data)
+meteo_data = qread(meteo_data)  
+  
+###Delete stations with no data about temperature
+##
+clean_meteo_data = lapply(meteo_data, find_col) %>% as.data.frame() %>% t() %>% data.frame()
+row.names(clean_meteo_data) = NULL
+clean_meteo_data = clean_meteo_data %>% mutate(name = (1:length(.) )) %>% subset(. == T)
+
+t  = meteo_data
+names(t) = (1:length(t))
+
+clean_meteo_data = t[names(t) %in% clean_meteo_data$name]
+
+
+###Delete stations with little quantity of months
+clean_meteo_data_m = lapply(clean_meteo_data, find_col2) %>% as.data.frame() %>% t() %>% data.frame()
+clean_meteo_data_m$name = substr(rownames(clean_meteo_data_m), start = 2, stop = 10000)
+clean_meteo_data_m = clean_meteo_data_m %>% subset(. == T)
+
+clean_meteo_data = clean_meteo_data[names(clean_meteo_data) %in% clean_meteo_data_m$name]
+
+seasonal_data = lapply(clean_meteo_data, Dur)
+ 
+seasonal_data_bind = seasonal_data %>% bind_rows() %>% na.omit() 
+ 
+#return(clean_meteo_data)
+}
+
+
+ list_of_files2 = list.files(path = 'F:/Rproc/pet_fav_climat/', full.names = F, pattern = '.qs')
+ raw_output = lapply(list_of_files2, Meteo_data_f2) %>% bind_rows()
+
+ output = raw_output %>% bind_rows() %>% na.omit() %>% subset((winter + summer + autumn + spring) > 300 ) %>% 
+   st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+```
+
+Add sunshine, precipitation and snowcover data from entire sorces (rasters) by extracting 
+```{r}
+sunshine = st_read('sunshine.shp')
+colnames(sunshine) = c('Id', 'sunshine_hours', 'geometry')
+data = output %>% subset(prec > 0) %>% st_join(sunshine) %>% select(-c('Id', 'OBJECTID_1'))
+
+data = data %>% mutate(sunny_days = round(sunshine_hours*365/4380, 1), 
+                       snow = round(snow, 1), 
+                       prec = round(prec/10, 1)) %>% na.omit()
+                       
+
+list_of_rasters = list.files(path = 'precipitation data/', pattern = '.tif', full.names = T)
+
+prec_data = lapply(list_of_rasters, function(x){
+  x = raster::raster(x)
+  t = data
+  t = raster::extract(x, t) %>% data.frame()
+  }) %>% bind_cols()
+data$prec = prec_data
+
+snowcover_data = raster::extract(raster::raster('snowcover duration data/SCD_full_mean_2001-2021_wgs841.tif'), data)
+data$snow = snowcover_data
+
+st_write(data, 'meteo_data2.shp')
+```
+
