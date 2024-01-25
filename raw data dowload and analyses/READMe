@@ -2,3 +2,4 @@ This code is designed to analyze climate data, providing insights and visualizat
 It utilizes R programming language and various data analysis libraries such as tidyverse, LaF, qs, sf and some etc. 
 
 Features: The code 1.Rmd can handle large datasets and performs necessary preprocessing steps such as data dowloading, data cleaning, removing missing values, and data formatting to ensure accurate analysis.
+Also it calculates all necessary climate parametrs, such as season duration, number of sunshine days.
