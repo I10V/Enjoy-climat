@@ -1,1 +1,4 @@
-This code is designed to analyze climate data, providing insights and visualizations for better understanding of climate patterns and trends. It utilizes Python programming language and various data analysis libraries such as Pandas, NumPy, and Matplotlib.
+This code is designed to analyze climate data, providing insights and visualizations for using this data on shiny.app #Enjoy_climate
+It utilizes R programming language and various data analysis libraries such as tidyverse, LaF, qs, sf and some etc. 
+
+Features: The code 1.Rmd can handle large datasets and performs necessary preprocessing steps such as data dowloading, data cleaning, removing missing values, and data formatting to ensure accurate analysis.
