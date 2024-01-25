@@ -1,0 +1,97 @@
+library(sf)
+library(shiny)
+library(leaflet)
+library(RColorBrewer)
+library(tidyverse)
+
+data = st_read('meteo_data2.shp')
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = data$prec )
+
+ui <-navbarPage(
+  title  = "Find your ideal climat!"
+  
+  ,
+  tabPanel(title = "Season",
+           
+           leafletOutput("map", height = 800),
+           
+           selectInput("season", 'Mapping variable :', choices = c('Winter duration, days' = 'winter', 'Spring duration, days' = 'spring', 
+                                                                   'Summer duration, days' = 'summer', 'Autumn duration, days' = 'autumn', 
+                                                                   'Snow cover duration, days' = 'snow', 'Number of sunny days' = 'snny_dy', 'Annual precipitation, cm' = 'prec'
+           )), 
+           
+           absolutePanel(top = 90, left =70,
+                     sliderInput("range_wi", "Winter duration, days", 0, 365, value = c(0, 365), step = 1), 
+                     sliderInput("range_sp", "Spring duration, days", 0, 365, value = c(0, 365), step = 1),
+                     sliderInput("range_su", "Summer duration, days", 0, 365, value = c(0, 365), step = 1),
+                     sliderInput("range_au", "Autumn duration, days", 0, 365, value = c(0, 365), step = 1),
+                     
+                     sliderInput("range_sn", "Snow cover duration, days", 0, 365, value = c(0, 365), step = 1),
+                     sliderInput("range_sun", "Number of sunny days", 0, 365, value = c(0, 365), step = 1),
+                     sliderInput("range_prec", "Quantity of precipitation, cm", 0, max(data$prec, na.rm = T), value = c(0, max(data$prec, na.rm = T)), step = 1),
+                     
+           ), 
+           DT::dataTableOutput("mytable")
+           
+  )
+  ,
+  tabPanel(title = "Descriprion", 
+           
+           mainPanel(
+             h1('Data description')
+             ,h4('Winter here is days with an average daily temperature below -3 oC, Summer here is days with a temperature greater than 10 oC, Autumn and Spring are seasons between those seasons [1]. 
+                 Temperature data was taken from the National Centers for Environmental Information (NCEI): https://www.ncdc.noaa.gov/cdo-web/search. It is a raw meteorological measurement from meteostations. 
+                 Season duration was averaged in the range of 2000–2022.')
+             ,h1()
+             ,h4('The annual mean precipitation value was taken from WorldClim: https://www.worldclim.org/data/worldclim21.html. This is a historical reanalysis of climate data from 1970–2000 [2].' )
+             ,h1()
+             ,h4('Sunshine duration data was processed by the Hague Centre for Strategic Studies and downloaded as a.jpg file in VividMaps [3]. Next, it was manually georeferenced and digitizated in ArcMap. 
+                 Conversation from hourly data (H) to daily data (D) was processed by equation: D = H / 12. It could give an error of up to 25%, in the case of Russia.')
+             ,h1()
+             ,h4('Snow cover duration data was captured from the Global SnowPack dataset from https://download.geoservice.dlr.de/GSP/files/. This database was developed using Modis satellite data from 2000 to 2001 [4].')
+             ,h1()
+             ,h5('[1] Неприятель Р.С., Марусин К.В, Методы определения структуры климатических сезонов годового цикла // Известия АлтГУ. 2012. №3. URL: https://cyberleninka.ru/article/n/metody-opredeleniya-struktury-klimaticheskih-sezonov-godovogo-tsikla')
+             ,h5('[2] Fick, S.E. and R.J. Hijmans, 2017. WorldClim 2: new 1km spatial resolution climate surfaces for global land areas. International Journal of Climatology 37 (12): 4302-4315' ) 
+             ,h5('[3] VividMaps https://vividmaps.com/annual-sunshine-hours-of-world/ ')
+             ,h5('[4] Dietz, A.J., Wohner, C., Kuenzer, C., 2012. European Snow Cover Characteristics between 2000 and 2011 Derived from Improved MODIS Daily Snow Cover Products. Remote Sensing 4. https://doi.org/10.3390/rs4082432')
+             
+           )
+  )
+  
+  
+)
+
+server <- function(input, output, session) {
+  
+  # Reactive expression for the data subseted to what the user selected
+  filteredData <- reactive({
+    data[
+      (data$winter >= input$range_wi[1] & data$winter <= input$range_wi[2]) &
+        (data$spring >= input$range_sp[1] & data$spring <= input$range_sp[2]) &
+        (data$summer >= input$range_su[1] & data$summer <= input$range_su[2]) &
+        (data$autumn >= input$range_au[1] & data$autumn <= input$range_au[2]) & 
+        (data$snow >= input$range_sn[1] & data$autumn <= input$range_sn[2]) & 
+        (data$snny_dy >= input$range_sun[1] & data$autumn <= input$range_sun[2]) & 
+        (data$snshn_h >= input$range_prec[1] & data$autumn <= input$range_prec[2]) 
+      
+      ,]
+  })
+  
+  
+  filteredData2 = reactive({ filteredData() %>% dplyr::select(input$season) 
+  })
+  
+
+  output$map <- renderLeaflet({
+    leaflet(filteredData2()) %>% addTiles() %>%
+      fitBounds(0, 0, 10, 60) %>% addCircles(color = ~pal(get(isolate(input$season))), weight = 10) %>%
+      addLegend("bottomright", pal = pal, values = ~get(isolate(input$season)), title = input$season)
+  })
+  
+  output$mytable = DT::renderDataTable({ filteredData() })
+  
+}
+
+shinyApp(ui, server)
